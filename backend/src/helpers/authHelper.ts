@@ -1,8 +1,6 @@
 import { Jwt } from '../auth/Jwt'
 import {  decode } from 'jsonwebtoken'
 
-
-
 export function getUserId(authHeader: string): string{
   console.log('authHeader',authHeader)
   const token = getToken(authHeader)
@@ -10,9 +8,6 @@ export function getUserId(authHeader: string): string{
   console.log('jwt',jwt.payload)
   return jwt.payload.sub
 }
-
-
-
 
 function getToken(authHeader: string): string {
     if (!authHeader) throw new Error('No authentication header')
