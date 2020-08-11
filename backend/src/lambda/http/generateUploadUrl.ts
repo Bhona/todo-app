@@ -1,32 +1,54 @@
+import { APIGatewayProxyHandler, APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
+import * as AWS from 'aws-sdk'
 import 'source-map-support/register'
-import { APIGatewayProxyEvent, APIGatewayProxyResult, APIGatewayProxyHandler } from 'aws-lambda'
-import { S3Helper } from '../../helpers/s3Helper';
-import { ApiResponseHelper } from '../../helpers/apiResponseHelper';
-import { TodosAccess } from '../../dataLayer/todosAccess'
-import { getUserId} from '../../helpers/authHelper'
-import { createLogger } from '../../utils/logger'
 
-const todosAccess = new TodosAccess()
-const apiResponseHelper = new ApiResponseHelper()
-const logger = createLogger('todos')
+
+const docClient = new AWS.DynamoDB.DocumentClient()
 
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     const todoId = event.pathParameters.todoId
-    const authHeader = event.headers['Authorization']
-    const userId = getUserId(authHeader)
- 
-    const item = await todosAccess.getTodoById(todoId)
-    if(item.Count == 0){
-        logger.error(`user ${userId} requesting put url for non exists todo with id ${todoId}`)
-        return apiResponseHelper.generateErrorResponse(400,'TODO not exists')
+    const signedUrlExpireSeconds = 60 * 5
+
+    console.log(todoId)
+    const bucket = process.env.IMAGES_BUCKET
+    const todosTable = process.env.TODO_TABLE
+
+    // const imageId = uuid.v4()
+
+    const s3 = new AWS.S3({
+        signatureVersion: 'v4'
+    })
+
+    // TODO: Return a presigned URL to upload a file for a TODO item with the provided id
+
+    const url = s3.getSignedUrl('putObject', {
+        Bucket: bucket,
+        Key: `${todoId}.png`,
+        Expires: signedUrlExpireSeconds
+    })
+
+    const imageUrl = `https://${bucket}.s3.amazonaws.com/${todoId}.png`
+
+    const updateUrlOnTodo = {
+        TableName: todosTable,
+        Key: { "todoId": todoId },
+        UpdateExpression: "set attachmentUrl = :a",
+        ExpressionAttributeValues: {
+            ":a": imageUrl
+        },
+        ReturnValues: "UPDATED_NEW"
     }
 
-    if(item.Items[0].userId !== userId){
-        logger.error(`user ${userId} requesting put url todo does not belong to his account with id ${todoId}`)
-        return apiResponseHelper.generateErrorResponse(400,'TODO does not belong to authorized user')
+    await docClient.update(updateUrlOnTodo).promise()
+
+    return {
+        statusCode: 201,
+        headers: {
+            'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({
+            iamgeUrl: imageUrl,
+            uploadUrl: url
+        })
     }
-    
-    const url = new S3Helper().getPresignedUrl(todoId)
-    return apiResponseHelper
-            .generateDataSuccessResponse(200,"uploadUrl",url)
 }

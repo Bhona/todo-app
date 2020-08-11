@@ -73,15 +73,15 @@ export class TodosAccess{
           }).promise()
     }
 
-    async deleteTodoById(todoId: string){
-        const param = {
-            TableName: this.todosTable,
-            Key:{
-                "todoId":todoId
-            }
-        }
+    // async deleteTodoById(todoId: string){
+    //     const param = {
+    //         TableName: this.todosTable,
+    //         Key:{
+    //             "todoId":todoId
+    //         }
+    //     }
       
-         await this.docClient.delete(param).promise()
-    }
+    //      await this.docClient.delete(param).promise()
+    // }
     
 }

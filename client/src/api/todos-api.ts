@@ -35,6 +35,11 @@ export async function patchTodo(
   todoId: string,
   updatedTodo: UpdateTodoRequest
 ): Promise<void> {
+
+  // console.log('idToken: ' + idToken);
+  // console.log(`${apiEndpoint}/todos/${todoId}`);
+  // console.log(JSON.stringify(updatedTodo));
+
   await Axios.patch(`${apiEndpoint}/todos/${todoId}`, JSON.stringify(updatedTodo), {
     headers: {
       'Content-Type': 'application/json',
